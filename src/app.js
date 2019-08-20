@@ -26,6 +26,7 @@ module.exports = () => {
             return schedulerJobManager.reloadCronJobs();
         })
         .then(() => {
+            kubernetesJobConnector.init();
             let app = express();
 
             app.use(function (req, res, next) {
