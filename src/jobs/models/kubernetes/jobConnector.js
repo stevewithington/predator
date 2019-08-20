@@ -5,6 +5,7 @@ let fs = require('fs');
 let requestSender = require('../../../common/requestSender');
 let logger = require('../../../common/logger');
 let kubernetesConfig = require('../../../config/kubernetesConfig');
+let _ = require('lodash');
 let kubernetesUrl = kubernetesConfig.kubernetesUrl;
 let kubernetesNamespace = kubernetesConfig.kubernetesNamespace;
 let headers = {};
@@ -23,6 +24,38 @@ if (kubernetesConfig.kubernetesToken) {
         logger.warn(error, 'Failed to get kubernetes token from: ' + TOKEN_PATH);
     }
 }
+
+setInterval(async () => {
+    let url = util.format('%s/api/v1/namespaces/%s/pods', kubernetesUrl, kubernetesNamespace);
+    let options = {
+        url,
+        method: 'GET',
+        headers
+    };
+
+    try {
+        let response = await requestSender.send(options);
+
+        for (let i = 0; i < response.items.length; i++) {
+            let item = response.items[i];
+            let containers = item.status.containerStatuses;
+            let predatorRunner = containers.find(o => o.name === 'predator-runner');
+
+            if (predatorRunner && predatorRunner.state.terminated && predatorRunner.state.terminated.finishedAt) {
+                let url = util.format('%s/apis/batch/v1/namespaces/%s/jobs/%s?propagationPolicy=Foreground', kubernetesUrl, kubernetesNamespace, item.metadata.labels['job-name']);
+                let options = {
+                    url,
+                    method: 'DELETE',
+                    headers
+                };
+
+                await requestSender.send(options);
+            }
+        }
+    } catch (error) {
+        logger.error('Failed to delete finished jobs', error);
+    }
+}, 60000);
 
 module.exports.runJob = async (kubernetesJobConfig) => {
     let url = util.format('%s/apis/batch/v1/namespaces/%s/jobs', kubernetesUrl, kubernetesNamespace);

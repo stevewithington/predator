@@ -16,6 +16,7 @@ let database = require('./database/database');
 let schedulerJobManager = require('./jobs/models/jobManager');
 let path = require('path');
 let zip = require('express-easy-zip');
+let kubernetesJobConnector = require('./jobs/models/kubernetes/jobConnector');
 
 module.exports = () => {
     return swaggerValidator.init('./docs/openapi3.yaml', { beautifyErrors: true })
