@@ -60,7 +60,7 @@ module.exports = () => {
             app.use('/v1/tests', testsRouter);
 
             app.use('/', function (req, res, next) {
-                res.redirect('/ui');
+                res.sendFile(path.resolve('ui/dist/index.html'));
             });
 
             app.use(function (err, req, res, next) {
